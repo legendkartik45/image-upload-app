@@ -17,7 +17,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import ImageProcessor from './services/ImageProcessorService'; // Import the ImageProcessor class
 
 export default {
   data() {
@@ -25,6 +25,8 @@ export default {
       image: null,
       processedImageUrl: '',
       uploadProgress: null,
+      uploading: false, // Indicates if uploading is in progress
+      imageProcessor: new ImageProcessor('https://your-cloud-function-url'), // Initialize ImageProcessor with cloud function URL
     };
   },
   methods: {
@@ -34,28 +36,24 @@ export default {
         return;
       }
 
-      const formData = new FormData();
-      formData.append('image', this.image);
+      this.uploading = true; // Start uploading
+      this.uploadProgress = 0; // Initialize upload progress
 
       try {
-        this.uploadProgress = 0;
-        const config = {
-          onUploadProgress: progressEvent => {
-            this.uploadProgress = Math.round((progressEvent.loaded / progressEvent.total) * 100);
-          },
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        };
+        // Call the processImage method of the ImageProcessor
+        this.processedImageUrl = await this.imageProcessor.processImage(this.image);
 
-        const response = await axios.post('https://your-api-endpoint.com/process', formData, config);
-        this.processedImageUrl = response.data.processedImageUrl;
+        // Set uploadProgress to 100% when processing is complete
+        this.uploadProgress = 100;
+
       } catch (error) {
         console.error('Error:', error);
         // Handle error: display error message to the user
         this.processedImageUrl = URL.createObjectURL(this.image); // Fallback to uploaded image
-      } finally {
+        // Set uploadProgress to null in case of fallback
         this.uploadProgress = null;
+      } finally {
+        this.uploading = false; // Stop uploading
       }
     },
     handleImageChange(event) {
@@ -71,6 +69,8 @@ export default {
     },
   },
 };
+
+
 </script>
 
 <style>
